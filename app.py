@@ -1,20 +1,17 @@
 import os
 import requests
-from flask import Flask, request, jsonify
-from flask_restx import Api, Resource, fields
+from flask_openapi3 import OpenAPI, Info, Schema
+from flask import jsonify
 
-app = Flask(__name__)
-
-# Initialize Flask-RestX API
-api = Api(
-    app,
-    version="1.0",
+# --- API Info & Initialization ---
+info = Info(
     title="Notion Relay API",
-    description="Relay endpoints for Notion integration",
-    doc="/docs"
+    version="1.0",
+    description="Relay endpoints for Notion integration"
 )
+app = OpenAPI(__name__, info)
 
-# Notion credentials from env
+# --- Notion Credentials (from Heroku env) ---
 NOTION_TOKEN   = os.environ["NOTION_TOKEN"]
 DATABASE_ID    = os.environ["NOTION_DATABASE_ID"]
 NOTION_VERSION = os.environ.get("NOTION_VERSION", "2022-06-28")
@@ -25,73 +22,72 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-# Define the Task input model for documentation
-task_model = api.model("Task", {
-    "title": fields.String(required=True, description="The task Name (Title)"),
-    "description": fields.String(description="Detailed description of the task"),
-    "parent_task_id": fields.String(description="ID of parent task (optional)"),
-    "child_task_ids": fields.List(fields.String, description="List of child task IDs (optional)"),
-    "task_group_id": fields.String(description="ID of the Task Group (optional)")
-})
+# --- Pydantic Schema for Task Input ---
+class Task(Schema):
+    title: str
+    description: str = None
+    parent_task_id: str = None
+    child_task_ids: list[str] = []
+    task_group_id: str = None
 
-@api.route("/add_task")
-class AddTask(Resource):
-    @api.expect(task_model)
-    @api.response(200, "Task created successfully")
-    @api.response(400, "Invalid input")
-    def post(self):
-        data = request.get_json()
-        title          = data.get("title")
-        description    = data.get("description")
-        parent_task_id = data.get("parent_task_id")
-        child_task_ids = data.get("child_task_ids", [])
-        task_group_id  = data.get("task_group_id")
+# --- Endpoints ---
+@app.post(
+    "/add_task",
+    summary="Create a new Task in Notion",
+    responses={200: "Task created successfully", 400: "Invalid input"}
+)
+def add_task(body: Task):
+    """
+    Receives a Task object and creates a new page in the Notion Tasks DB.
+    """
+    props = {
+        "Name": {"title": [{"text": {"content": body.title}}]}
+    }
+    if body.description:
+        props["Description"] = {"rich_text": [{"text": {"content": body.description}}]}
+    if body.parent_task_id:
+        props["Parent task"] = {"relation": [{"id": body.parent_task_id}]}
+    if body.child_task_ids:
+        props["Child tasks"] = {"relation": [{"id": cid} for cid in body.child_task_ids]}
+    if body.task_group_id:
+        props["Task Group"] = {"relation": [{"id": body.task_group_id}]}
 
-        props = {
-            "Name": {"title": [{"text": {"content": title}}]}
+    payload = {"parent": {"database_id": DATABASE_ID}, "properties": props}
+    resp = requests.post(
+        "https://api.notion.com/v1/pages",
+        headers=HEADERS,
+        json=payload
+    )
+    return jsonify(resp.json()), resp.status_code
+
+@app.get(
+    "/list_tasks",
+    summary="List existing tasks",
+    responses={200: "List returned"}
+)
+def list_tasks(category: str = None):
+    """
+    Optionally filters by multi-select Category. Returns the raw Notion DB query.
+    """
+    query = {"page_size": 100}
+    if category:
+        query["filter"] = {
+            "property": "Category",
+            "multi_select": {"contains": category}
         }
-        if description:
-            props["Description"] = {"rich_text": [{"text": {"content": description}}]}
-        if parent_task_id:
-            props["Parent task"] = {"relation": [{"id": parent_task_id}]}
-        if child_task_ids:
-            props["Child tasks"] = {"relation": [{"id": cid} for cid in child_task_ids]}
-        if task_group_id:
-            props["Task Group"] = {"relation": [{"id": task_group_id}]}
+    resp = requests.post(
+        f"https://api.notion.com/v1/databases/{DATABASE_ID}/query",
+        headers=HEADERS,
+        json=query
+    )
+    return jsonify(resp.json()), resp.status_code
 
-        payload = {"parent": {"database_id": DATABASE_ID}, "properties": props}
-        resp = requests.post("https://api.notion.com/v1/pages", headers=HEADERS, json=payload)
-        return jsonify(resp.json()), resp.status_code
-
-@api.route("/list_tasks")
-class ListTasks(Resource):
-    @api.doc(params={"category": "Filter by Category name (optional)"})
-    def get(self):
-        category = request.args.get("category")
-        query = {"page_size": 100}
-        if category:
-            query["filter"] = {
-                "property": "Category",
-                "multi_select": {"contains": category}
-            }
-        resp = requests.post(
-            f"https://api.notion.com/v1/databases/{DATABASE_ID}/query",
-            headers=HEADERS,
-            json=query
-        )
-        return jsonify(resp.json()), resp.status_code
-
-# Endpoint to serve the OpenAPI (Swagger) JSON
-@app.route("/openapi.json")
+# --- Override OpenAPI JSON to include servers ---
+@app.get("/openapi.json")
 def openapi_json():
-
-    server_url = "https://" + os.environ["HEROKU_APP_DEFAULT_DOMAIN_NAME"]
-    schema = api.__schema__
-    schema["servers"] = [
-        {"url": server_url}
-    ]
+    schema = app.openapi()
+    base = os.environ.get("HEROKU_APP_DEFAULT_DOMAIN_NAME")
+    url = f"https://{base}" if base else None
+    if url:
+        schema["servers"] = [{"url": url}]
     return jsonify(schema)
-
-
-if __name__ == "__main__":
-    app.run()

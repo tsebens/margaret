@@ -85,10 +85,10 @@ class ListTasks(Resource):
 @app.route("/openapi.json")
 def openapi_json():
 
-    server_url = os.environ["HEROKU_APP_DEFAULT_DOMAIN_NAME"]
+    server_url = "https://" + os.environ["HEROKU_APP_DEFAULT_DOMAIN_NAME"]
     schema = api.__schema__
     schema["servers"] = [
-        {"url": server_url, "description": "Primary API server"}
+        {"url": server_url}
     ]
     return jsonify(schema)
 

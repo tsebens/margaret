@@ -88,25 +88,3 @@ def list_tasks(category: str = None):
     )
     return jsonify(resp.json()), resp.status_code
 
-@app.get("/openapi.json")
-def openapi_json():
-    # 1) Generate the raw schema (3.1.0 by default)
-    raw = app.openapi()
-
-    # 2) Deep-copy and massage into a 3.0.0 document
-    schema = deepcopy(raw)
-    schema["openapi"] = "3.0.0"
-
-    # 3) Prune out any null or unsupported component entries
-    comps = schema.get("components", {})
-    # If securitySchemes is None or empty, remove it
-    if comps.get("securitySchemes") is None:
-        comps.pop("securitySchemes", None)
-    # (You can repeat this pattern for other null-valued component fields)
-
-    # 4) Re‑attach servers, reading your Heroku domain at runtime
-    base = os.environ.get("HEROKU_APP_DEFAULT_DOMAIN_NAME")
-    if base:
-        schema["servers"] = [{"url": f"https://{base}"}]
-
-    return jsonify(schema)

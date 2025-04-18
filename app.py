@@ -34,7 +34,6 @@ class Task(Schema):
 @app.post(
     "/add_task",
     summary="Create a new Task in Notion",
-    responses={200: "Task created successfully", 400: "Invalid input"}
 )
 def add_task(body: Task):
     """
@@ -63,7 +62,6 @@ def add_task(body: Task):
 @app.get(
     "/list_tasks",
     summary="List existing tasks",
-    responses={200: "List returned"}
 )
 def list_tasks(category: str = None):
     """

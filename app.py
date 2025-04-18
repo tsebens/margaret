@@ -84,7 +84,14 @@ class ListTasks(Resource):
 # Endpoint to serve the OpenAPI (Swagger) JSON
 @app.route("/openapi.json")
 def openapi_json():
-    return jsonify(api.__schema__)
+
+    server_url = os.environ["HEROKU_APP_DEFAULT_DOMAIN_NAME"]
+    schema = jsonify(api.__schema__)
+    schema["servers"] = [
+        {"url": server_url, "description": "Primary API server"}
+    ]
+    return schema
+
 
 if __name__ == "__main__":
     app.run()

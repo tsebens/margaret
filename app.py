@@ -1,6 +1,6 @@
 import os
 import requests
-from flask_openapi3 import OpenAPI, Info, Schema
+from flask_openapi3 import OpenAPI, Info, Schema, Server
 from flask import jsonify
 
 # --- API Info & Initialization ---
@@ -9,7 +9,13 @@ info = Info(
     version="1.0",
     description="Relay endpoints for Notion integration"
 )
-app = OpenAPI(__name__, info=info)
+app = OpenAPI(
+    __name__,
+    info=info,
+    servers=[
+        Server(url='http://' + os.environ.get("HEROKU_APP_DEFAULT_DOMAIN_NAME"))
+    ]
+)
 
 # --- Notion Credentials (from Heroku env) ---
 NOTION_TOKEN   = os.environ["NOTION_TOKEN"]

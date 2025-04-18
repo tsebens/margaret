@@ -4,12 +4,12 @@ from flask_openapi3 import OpenAPI, Info, Schema
 from flask import jsonify
 
 # --- API Info & Initialization ---
-info = Info(
+app = OpenAPI(
+    __name__,
     title="Notion Relay API",
     version="1.0",
     description="Relay endpoints for Notion integration"
 )
-app = OpenAPI(__name__, info)
 
 # --- Notion Credentials (from Heroku env) ---
 NOTION_TOKEN   = os.environ["NOTION_TOKEN"]

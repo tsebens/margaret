@@ -86,11 +86,11 @@ class ListTasks(Resource):
 def openapi_json():
 
     server_url = os.environ["HEROKU_APP_DEFAULT_DOMAIN_NAME"]
-    schema = jsonify(api.__schema__)
+    schema = api.__schema__
     schema["servers"] = [
         {"url": server_url, "description": "Primary API server"}
     ]
-    return schema
+    return jsonify(schema)
 
 
 if __name__ == "__main__":

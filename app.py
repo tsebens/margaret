@@ -2,8 +2,7 @@ import os
 import requests
 from flask import Flask, request, jsonify
 from flasgger import Swagger
-from starlette.responses import JSONResponse
-
+from flasgger.utils import swag_from
 app = Flask(__name__)
 
 # --- Configure Swagger ---

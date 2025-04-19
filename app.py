@@ -8,7 +8,7 @@ app = Flask(__name__)
 # --- Configure Swagger ---
 BASE_URL = os.environ.get("HEROKU_APP_DEFAULT_DOMAIN_NAME", "localhost:5000")
 swagger_template = {
-    "openapi": "3.0.0",
+    # "openapi": "3.0.0",
     "info": {
         "title": "Notion Relay API",
         "version": "1.0",

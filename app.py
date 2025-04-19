@@ -2,9 +2,7 @@ import os
 import requests
 from flask import Flask, request, jsonify
 from flasgger import Swagger
-from notion_client import Client
 
-notion = Client(auth=os.environ["NOTION_TOKEN"])
 app = Flask(__name__)
 
 # --- Configure Swagger ---

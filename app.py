@@ -117,7 +117,7 @@ def list_tasks():
     #     query['filter'] = {"property": "Category", "multi_select": {"contains": category}}
     # resp = requests.post(f'https://api.notion.com/v1/databases/{DATABASE_ID}/query', headers=HEADERS, json=query)
     # return jsonify(resp.json()), resp.status_code
-    return JSONResponse({"message": "Congratulations"}, status_code=200)
+    return {"message": "Congratulations"}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

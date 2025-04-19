@@ -52,6 +52,7 @@ def add_task():
     """
     Create a new Task in Notion
     ---
+    operationId: addTask
     requestBody:
       required: true
       content:
@@ -94,6 +95,7 @@ def list_tasks():
     """
     List existing tasks
     ---
+    operationId: listTasks
     parameters:
       - in: query
         name: category
